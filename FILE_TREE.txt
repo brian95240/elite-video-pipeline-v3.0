@@ -1,0 +1,18 @@
+.
+├── FILE_TREE.txt
+├── LICENSE.md
+├── README.md
+├── config
+├── docs
+├── redis_templates
+├── requirements.txt
+├── scripts
+├── src
+│   ├── cinematography_engine.py
+│   ├── emotional_index_v3.py
+│   ├── pipeline_orchestrator.py
+│   └── redis_orchestrator.py
+└── tests
+    └── test_pipeline_closed_loop.py
+
+6 directories, 9 files
