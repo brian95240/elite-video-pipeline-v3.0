@@ -1,404 +1,171 @@
-# Elite Video Pipeline v3.0
+# Elite Video Pipeline v3.0: Emotional Direction as Code
 
-**Professional-grade video processing pipeline with 12 emotional archetypes and Hollywood-level cinematography**
+**Turn raw video footage into emotionally resonant stories with a single command. This is not just a video processor—it's an automated Hollywood director in a box.**
 
-## Overview
+---
 
-Elite Video Pipeline v3.0 is a distributed microservices architecture for automated video production with emotional intelligence. It combines:
+<p align="center">
+  <img src="https://raw.githubusercontent.com/brian95240/elite-video-pipeline-v3.0/main/docs/assets/elite-pipeline-hero.png" alt="Elite Video Pipeline v3.0 Hero Image" width="800">
+</p>
 
-- **12 Emotional Archetypes** (7 original + 5 new)
-- **Redis-based Orchestration** for distributed processing
-- **FFmpeg Cinematography Engine** for professional visual effects
-- **Quality Gate Validation** for consistent output
-- **10-Archetype Firewall** for specialized processing roles
+---
 
-## Architecture
+## 🎬 What is the Elite Video Pipeline?
 
-### Core Components
+The Elite Video Pipeline is a revolutionary system that automates the art of cinematography. It analyzes your desired emotion and applies a corresponding suite of cinematic effects—camera movements, color grading, pacing, and visual effects—to transform your raw footage into a polished, emotionally compelling video.
+
+**Input:** Raw video + a desired emotion (e.g., "Triumph", "Nostalgia", "Rage")
+
+**Output:** A professionally graded and edited video that evokes that specific feeling.
+
+### How It Works: The Cinematography Engine
+
+At its core, the pipeline uses a sophisticated **Cinematography Engine** that translates emotional concepts into technical FFmpeg filter chains. It draws from a library of 40+ cinematic techniques, all mapped to a rich emotional taxonomy.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Pipeline Orchestrator                     │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌──────────────────┐  ┌──────────────────┐                 │
-│  │ Emotional Index  │  │ Cinematography   │                 │
-│  │ (12 Archetypes)  │  │ Engine           │                 │
-│  └──────────────────┘  └──────────────────┘                 │
-│                                                               │
-│  ┌──────────────────┐  ┌──────────────────┐                 │
-│  │ Redis            │  │ Quality Gate     │                 │
-│  │ Orchestrator     │  │ Validator        │                 │
-│  └──────────────────┘  └──────────────────┘                 │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
+User Input: "Make this video feel like TRIUMPH (Heavy)"
+                          ↓
+              Emotional Index Lookup
+                          ↓
+         Cinematography Engine Generates:
+         - Camera: Slow-motion hero shot
+         - Color: High saturation, warm tones
+         - VFX: Lens flare, dramatic lighting
+         - Pacing: Ramped slow-motion
+                          ↓
+              FFmpeg Filter Chain:
+              "scale=1920:1080,fps=24,
+               curves=vintage,
+               zoompan=z=\'min(zoom+0.0015,1.5)\',
+               colorbalance=rs=0.3:gs=0.1:bs=-0.2,
+               vignette=PI/4"
+                          ↓
+              Rendered Video Output
 ```
 
-### Microservices (10-Archetype Firewall)
+---
+
+## ✨ Key Features
+
+### 1. **A Palette of 12 Emotional Archetypes**
+
+Direct your videos with a rich emotional vocabulary. Each archetype has been meticulously designed with corresponding cinematic language.
+
+| Archetype | Cinematic Style |
+|---|---|
+| **Triumph** | Uplifting slow-motion, warm & saturated colors, epic zooms |
+| **Nostalgia** | Soft focus, vintage color grading (sepia/faded), gentle vignettes |
+| **Rage** | High contrast, desaturated colors with red hues, shaky cam effects |
+| **Serenity** | Smooth, slow pans; natural, soft lighting; calm color palettes |
+| **Urgency** | Rapid cuts, quick zooms, high-energy camera movements |
+
+**3 Intensity Levels (Light, Medium, Heavy)** allow for nuanced control, from a subtle hint of emotion to a powerful, immersive experience.
+
+### 2. **Automated Hollywood Cinematography**
+
+The pipeline automates techniques used by professional cinematographers:
+
+- **Camera Movements:** Pans, tilts, zooms, dolly shots, and shaky cam effects.
+- **Color Grading:** Emotional color palettes, LUT-inspired curves, saturation, and contrast adjustments.
+- **Visual Effects (VFX):** Lens flares, vignettes, blurs, chromatic aberration, and light leaks.
+- **Pacing & Rhythm:** Frame rate adjustments, slow-motion, and time-lapses to control the energy of the scene.
+
+### 3. **Robust Microservices Architecture (10-Archetype Firewall)**
+
+Inspired by Jungian archetypes, the pipeline is built on a robust, scalable microservices architecture. Each service has a distinct role, ensuring reliability and specialization.
 
 | Archetype | Role | Responsibility |
-|-----------|------|-----------------|
-| **Oracle** | Script Generation | Emotional arc extraction |
-| **Trickster** | Voice Synthesis | TTS with metadata passing |
-| **Cartographer** | Retention Mapping | Cinematography JSON generation |
-| **Spectacle** | Rendering | SD thumbnail + FFmpeg effects |
-| **Ironist** | Quality Control | Cinematography validation |
-| **Alchemist** | Budget Tracking | Spot price monitoring |
-| **Shadow** | Legal Compliance | Copyright/licensing |
-| **Catalyst** | Launch Orchestration | Publishing workflow |
-| **Sage** | Analytics | Performance insights |
-| **Guardian** | Security | Monitoring & alerts |
+|---|---|---|
+| **Oracle** | Script Generation | Extracts emotional arcs and metadata |
+| **Trickster** | Voice Synthesis | Generates TTS with emotional context |
+| **Spectacle** | Rendering | Executes FFmpeg filter chains |
+| **Ironist** | Quality Control | Validates cinematic and technical quality |
+| **Alchemist** | Budget Tracking | Monitors processing costs |
+| **Guardian** | Security | Monitors system health and security |
 
-## Emotional Archetypes (v3.0)
+### 4. **Cloud-Native & Scalable**
 
-### Original (v2.0)
-1. **Curiosity** - Viewer investigating unknown
-2. **Fear** - Viewer anticipating threat
-3. **Triumph** - Viewer experiencing victory
-4. **Tension** - Viewer on edge, awaiting resolution
-5. **Wonder** - Viewer experiencing awe
-6. **Urgency** - Viewer feeling time pressure
-7. **Melancholy** - Viewer experiencing sadness/loss
+- **Redis Orchestration:** Manages job queues for high-throughput, asynchronous processing.
+- **Neon Serverless DB:** Uses a serverless PostgreSQL database for state management, metrics, and emotional profile storage.
+- **Ready for Scale:** Designed for containerization (Docker/Kubernetes) and horizontal scaling.
 
-### New (v3.0)
-8. **Romance** - Intimacy and affection
-9. **Joy** - Happiness, humor, and comedy
-10. **Nostalgia** - Sentimental memories and flashbacks
-11. **Rage** - Anger, fury, and revenge
-12. **Serenity** - Calm, peace, and nature
+---
 
-## Installation
+## 🚀 Who Is This For?
 
-### Requirements
+- **Content Creators:** Instantly elevate your social media videos, YouTube content, and marketing materials.
+- **Marketing Agencies:** Produce emotionally resonant ad campaigns at scale.
+- **AI Video Developers:** Integrate as a post-processing layer for AI-generated video to add cinematic flair.
+- **Media Platforms:** Automate the production of trailers, highlight reels, and promotional content.
+- **Indie Filmmakers:** Achieve professional-grade color grading and effects without a big budget.
 
-- Python 3.8+
-- Redis 6.0+ (optional, for distributed processing)
-- FFmpeg 4.0+
-- pip
+---
 
-### Setup
+## 🛠️ Getting Started
+
+### Quick Install
+
+This project is designed for a Linux environment with Python 3.11, Redis, and FFmpeg. For a complete, one-line deployment to a Hetzner cloud server, see our **[Hetzner Deployment Guide](HETZNER_DEPLOYMENT.md)**.
 
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/elite-video-pipeline-v3.0.git
+# 1. Clone the repository
+git clone https://github.com/brian95240/elite-video-pipeline-v3.0.git
 cd elite-video-pipeline-v3.0
 
-# Install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# (Optional) Start Redis
-redis-server
-
-# Run tests
-python -m pytest tests/
+# 3. Run tests to verify setup
+python tests/test_pipeline_closed_loop.py
 ```
 
-## Quick Start
-
-### Basic Usage
+### Quick Start Example
 
 ```python
 from src.pipeline_orchestrator import create_orchestrator, PipelineConfig
 
-# Create orchestrator
+# Configure the pipeline (assumes local Redis)
 config = PipelineConfig(redis_host="localhost", redis_port=6379)
 orchestrator = create_orchestrator(config)
 
-# Submit a video job
+# Submit a job to transform a video with the "Triumph" emotion
 job_id = orchestrator.submit_video_job(
-    video_id="video_001",
-    emotion="curiosity",
-    intensity="medium"
+    video_path="./input/raw_footage.mp4",
+    output_path="./output/triumph_heavy.mp4",
+    emotion="triumph",
+    intensity="heavy"
 )
 
 # Process the job
 success = orchestrator.process_job(job_id)
 
-# Get pipeline status
-status = orchestrator.get_pipeline_status()
-print(f"Pipeline status: {status}")
+if success:
+    print(f"Successfully created emotionally enhanced video: ./output/triumph_heavy.mp4")
 ```
-
-### Emotional Profile Retrieval
-
-```python
-from src.emotional_index_v3 import EmotionalIndexManager
-
-manager = EmotionalIndexManager()
-
-# Get profile for specific emotion/intensity
-profile = manager.get_emotion_profile("curiosity", "heavy")
-
-# Access components
-camera = profile["camera"]  # Camera movement parameters
-color = profile["color"]    # Color grading settings
-vfx = profile["vfx"]        # VFX effects list
-```
-
-### Cinematography Filter Generation
-
-```python
-from src.cinematography_engine import CinematographyEngine
-
-engine = CinematographyEngine()
-
-# Generate FFmpeg filter chain
-filter_chain = engine.generate_filter_chain(profile)
-
-# Build complete FFmpeg command
-cmd = engine.build_ffmpeg_command(
-    input_file="input.mp4",
-    output_file="output.mp4",
-    profile=profile,
-    duration=60.0
-)
-```
-
-## Configuration
-
-### Pipeline Configuration
-
-```python
-from src.pipeline_orchestrator import PipelineConfig
-
-config = PipelineConfig(
-    redis_host="localhost",      # Redis server host
-    redis_port=6379,             # Redis server port
-    max_retries=3,               # Max retry attempts
-    timeout_seconds=300,         # Job timeout
-    enable_quality_gates=True,   # Enable quality validation
-    enable_spot_pricing=True     # Enable spot price monitoring
-)
-```
-
-### Redis Configuration
-
-```python
-from src.redis_orchestrator import RedisOrchestrator
-
-orchestrator = RedisOrchestrator(
-    host="localhost",
-    port=6379,
-    db=0
-)
-```
-
-## Testing
-
-### Run Full Test Suite
-
-```bash
-python tests/test_pipeline_closed_loop.py
-```
-
-### Test Coverage
-
-- ✓ Emotional index completeness (12 archetypes)
-- ✓ Profile structure validation
-- ✓ Profile retrieval (all emotion/intensity combos)
-- ✓ FFmpeg filter generation
-- ✓ Profile validation logic
-- ✓ Intensity modulation
-- ✓ Quality gate validation
-- ✓ Redis orchestrator (if available)
-- ✓ End-to-end pipeline simulation
-
-## API Reference
-
-### PipelineOrchestrator
-
-#### `submit_video_job(video_id, emotion, intensity, metadata)`
-Submit a video for processing.
-
-**Parameters:**
-- `video_id` (str): Unique video identifier
-- `emotion` (str): Emotion archetype
-- `intensity` (str): 'light', 'medium', or 'heavy'
-- `metadata` (dict): Optional metadata
-
-**Returns:** job_id (str) or None
-
-#### `process_job(job_id)`
-Process a single job through the pipeline.
-
-**Parameters:**
-- `job_id` (str): Job identifier
-
-**Returns:** bool (success)
-
-#### `batch_process(jobs)`
-Process multiple jobs in batch.
-
-**Parameters:**
-- `jobs` (list): List of job specifications
-
-**Returns:** Results dictionary
-
-#### `get_pipeline_status()`
-Get overall pipeline status.
-
-**Returns:** Status dictionary
-
-#### `validate_pipeline()`
-Validate pipeline configuration.
-
-**Returns:** (is_valid, issues_list)
-
-### EmotionalIndexManager
-
-#### `get_emotion_profile(emotion, intensity)`
-Retrieve emotion profile.
-
-**Parameters:**
-- `emotion` (str): Emotion name
-- `intensity` (str): 'light', 'medium', or 'heavy'
-
-**Returns:** Profile dictionary
-
-#### `get_all_emotions()`
-Get list of available emotions.
-
-**Returns:** List of emotion names
-
-### CinematographyEngine
-
-#### `generate_filter_chain(profile)`
-Generate FFmpeg filter chain.
-
-**Parameters:**
-- `profile` (dict): Emotional profile
-
-**Returns:** FFmpeg filter string
-
-#### `build_ffmpeg_command(input_file, output_file, profile, duration)`
-Build complete FFmpeg command.
-
-**Returns:** Command string
-
-#### `validate_profile(profile)`
-Validate profile structure.
-
-**Returns:** (is_valid, errors_list)
-
-## Performance Metrics
-
-| Metric | Value |
-|--------|-------|
-| **Emotional Archetypes** | 12 |
-| **Intensity Levels** | 3 (light, medium, heavy) |
-| **Total Profiles** | 36 |
-| **Filter Templates** | 40+ |
-| **Redis Lookup Time** | O(1) microseconds |
-| **Filter Generation Time** | <100ms |
-| **Quality Gate Checks** | 5+ validations |
-
-## Cost Analysis
-
-| Component | Cost | Notes |
-|-----------|------|-------|
-| **Emotional Index** | $0 | Pre-computed lookup |
-| **Cinematography** | $0 | CPU-bound FFmpeg |
-| **Quality Gates** | $0 | Local validation |
-| **Redis** | $0-20/mo | Optional, scalable |
-| **Total (30 videos)** | $0.277/video | +$0.002 vs v2.0 |
-
-## Deployment
-
-### Docker
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY src/ src/
-COPY config/ config/
-
-CMD ["python", "src/pipeline_orchestrator.py"]
-```
-
-### Kubernetes
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: elite-pipeline-v3
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: elite-pipeline
-  template:
-    metadata:
-      labels:
-        app: elite-pipeline
-    spec:
-      containers:
-      - name: pipeline
-        image: elite-pipeline-v3:latest
-        env:
-        - name: REDIS_HOST
-          value: redis-service
-        - name: REDIS_PORT
-          value: "6379"
-```
-
-## Licensing
-
-This project uses **dual licensing**:
-
-- **GPL v3** - For open-source use
-- **Commercial License** - For proprietary use
-
-See `LICENSE.md` for details.
-
-## Contributing
-
-Contributions welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit changes
-4. Push to branch
-5. Create Pull Request
-
-## Support
-
-For issues, questions, or suggestions:
-
-- GitHub Issues: https://github.com/yourusername/elite-video-pipeline-v3.0/issues
-- Email: support@example.com
-- Documentation: https://docs.example.com
-
-## Changelog
-
-### v3.0 (Current)
-- ✨ Added 5 new emotional archetypes (romance, joy, nostalgia, rage, serenity)
-- ✨ Enhanced cinematography engine with 40+ filter templates
-- ✨ Improved quality gate validation
-- ✨ Redis orchestrator for distributed processing
-- 🔧 Optimized FFmpeg filter chains
-- 📊 Enhanced performance metrics
-
-### v2.0
-- Initial emotional cinematography system
-- 7 core emotional archetypes
-- GPU spot price monitoring
-- FFmpeg integration
-
-## Authors
-
-- **Manus AI** - Architecture & Development
-
-## Acknowledgments
-
-- FFmpeg community for excellent video processing tools
-- Redis team for robust data structures
-- Hollywood cinematography best practices
 
 ---
 
-**Elite Video Pipeline v3.0** - Professional Video Production at Scale
+## 📚 Documentation
+
+- **[API Reference](docs/API_REFERENCE.md):** Detailed documentation for all classes, methods, and emotional profiles.
+- **[Architecture Deep Dive](docs/ARCHITECTURE.md):** An in-depth look at the system design, microservices, and data flow.
+- **[Hetzner Deployment Guide](HETZNER_DEPLOYMENT.md):** Step-by-step instructions for deploying to a production environment on Hetzner Cloud.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether it's adding new emotional archetypes, improving filter chains, or enhancing the architecture, we encourage you to fork the repository and submit a pull request.
+
+---
+
+## 📜 Licensing
+
+This project is dual-licensed under **GPL v3** for open-source projects and a **Commercial License** for proprietary use. See `LICENSE.md` for details.
+
+---
+
+## 🧠 Acknowledgments
+
+- **Project Architect & Lead Developer:** Manus AI
+- **Inspiration:** The art of Hollywood cinematography and the power of emotional storytelling.
