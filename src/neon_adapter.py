@@ -21,19 +21,27 @@ except ImportError:
     logger.warning("psycopg2 not available - install with: pip install psycopg2-binary")
 
 
+# === ZERO-POINT CONFIGURATION: Global Connection Pool ===
+# Prevents "Hot Circuit" re-initialization on every request
+_connection_pools = {}  # Keyed by connection_string
+
+
 class NeonDatabaseAdapter:
     """
     Adapter for Neon PostgreSQL database
     Provides persistent storage for pipeline state, metrics, and configuration
+    
+    VERTEX OPTIMIZATION: Uses connection pooling to avoid hot circuit initialization
     """
     
-    def __init__(self, connection_string: str = None):
+    def __init__(self, connection_string: str = None, pool_size: int = 20):
         """
-        Initialize Neon database connection
+        Initialize Neon database connection with pooling
         
         Args:
             connection_string: PostgreSQL connection string
                              If not provided, reads from NEON_DATABASE_URL env var
+            pool_size: Maximum connections in pool (default: 20)
         """
         if not PSYCOPG2_AVAILABLE:
             raise ImportError("psycopg2 is required. Install with: pip install psycopg2-binary")
@@ -43,17 +51,48 @@ class NeonDatabaseAdapter:
         if not self.connection_string:
             raise ValueError("Connection string required. Set NEON_DATABASE_URL or pass connection_string")
         
+        self.pool_size = pool_size
         self.conn = None
-        self._connect()
+        self._ensure_pool()
+        self._get_connection()
     
-    def _connect(self):
-        """Establish database connection"""
+    def _ensure_pool(self):
+        """Ensure connection pool exists (singleton pattern)"""
+        global _connection_pools
+        
+        if self.connection_string not in _connection_pools:
+            try:
+                _connection_pools[self.connection_string] = psycopg2.pool.SimpleConnectionPool(
+                    1, self.pool_size, dsn=self.connection_string
+                )
+                logger.info(f"✓ Created connection pool (size: {self.pool_size})")
+            except Exception as e:
+                logger.error(f"✗ Failed to create connection pool: {e}")
+                raise
+    
+    def _get_connection(self):
+        """Get connection from pool"""
         try:
-            self.conn = psycopg2.connect(self.connection_string)
-            logger.info("✓ Connected to Neon database")
+            pool = _connection_pools[self.connection_string]
+            self.conn = pool.getconn()
+            logger.debug("✓ Retrieved connection from pool")
         except Exception as e:
-            logger.error(f"✗ Failed to connect to Neon: {e}")
+            logger.error(f"✗ Failed to get connection from pool: {e}")
             raise
+    
+    def _return_connection(self):
+        """Return connection to pool"""
+        if self.conn:
+            try:
+                pool = _connection_pools[self.connection_string]
+                pool.putconn(self.conn)
+                logger.debug("✓ Returned connection to pool")
+            except Exception as e:
+                logger.error(f"✗ Failed to return connection to pool: {e}")
+    
+    def __del__(self):
+        """Return connection to pool on cleanup"""
+        self._return_connection()
     
     def _execute(self, query: str, params: tuple = None, fetch: bool = False) -> Any:
         """Execute SQL query with automatic reconnection"""
