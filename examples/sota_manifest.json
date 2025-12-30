@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2025-12-29T00:00:00Z",
+  "cinematography_model": "gpt-4o",
+  "metrics": {
+    "quality_score": 92.0,
+    "cost_per_1k_tokens": 0.0025,
+    "is_foss": false,
+    "reasoning_capability": "excellent",
+    "json_reliability": "excellent"
+  },
+  "alternatives": [
+    {
+      "model": "claude-3-5-sonnet",
+      "quality_score": 94.0,
+      "cost_per_1k_tokens": 0.003,
+      "is_foss": false,
+      "notes": "Highest quality, slightly higher cost"
+    },
+    {
+      "model": "gemini-2.0-flash",
+      "quality_score": 88.0,
+      "cost_per_1k_tokens": 0.0001,
+      "is_foss": false,
+      "notes": "Excellent cost/quality ratio"
+    },
+    {
+      "model": "llama-3.1-70b",
+      "quality_score": 82.0,
+      "cost_per_1k_tokens": 0.0,
+      "is_foss": true,
+      "notes": "FOSS option, good quality, zero cost"
+    }
+  ],
+  "notes": "Update this manifest when a new model becomes SOTA. The Sentinel will auto-detect and upgrade if it meets vertex criteria (15% quality improvement, max 2x cost increase)."
+}

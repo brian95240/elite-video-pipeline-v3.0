@@ -15,6 +15,8 @@ from vertex_cinematography import VertexCinematography
 from render_manifest import RenderManifestCompiler
 from prompt_parser import PromptParser
 from cinematography_engine import CinematographyEngine
+from cinematography_oracle import get_oracle
+from sota_sentinel import get_sentinel
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -30,6 +32,8 @@ _vertex_engine = None
 _manifest_compiler = None
 _prompt_parser = None
 _cinematography_engine = None
+_oracle = None
+_sentinel = None
 
 
 def get_redis_client():
@@ -91,6 +95,24 @@ def get_cinematography_engine():
     return _cinematography_engine
 
 
+def get_cinematography_oracle():
+    """Lazy-load cinematography oracle (singleton)"""
+    global _oracle
+    if _oracle is None:
+        _oracle = get_oracle()
+        logger.info("✓ Cinematography Oracle initialized")
+    return _oracle
+
+
+def get_sota_sentinel():
+    """Lazy-load SOTA sentinel (singleton)"""
+    global _sentinel
+    if _sentinel is None:
+        _sentinel = get_sentinel()
+        logger.info("✓ SOTA Sentinel initialized")
+    return _sentinel
+
+
 # === API ENDPOINTS ===
 
 @app.route('/health', methods=['GET'])
@@ -109,17 +131,23 @@ def health_check():
 @app.route('/query', methods=['POST'])
 def query_endpoint():
     """
-    Main query endpoint for cinematography generation
-    Accepts natural language prompts and returns render manifest
+    Main query endpoint for cinematography generation with INTELLIGENT ROUTING
+    
+    Routing Logic:
+    - Generic prompts ("sad scene") → FREE local archetypes (instant)
+    - Specific prompts ("Wes Anderson style") → PAID Oracle (high-fidelity)
     
     Request body:
     {
-        "prompt": "Make this scene feel like a funeral in the year 2049"
+        "prompt": "Make this scene feel like a funeral in the year 2049",
+        "force_oracle": false  // Optional: force Oracle usage
     }
     
     Response:
     {
         "status": "compiled",
+        "source": "LOCAL_CACHE" or "SOTA_ORACLE",
+        "model_used": "gpt-4o" or "local_db",
         "render_manifest": {...},
         "ffmpeg_filter": "..."
     }
@@ -127,36 +155,88 @@ def query_endpoint():
     try:
         data = request.json
         prompt = data.get('prompt', '')
+        force_oracle = data.get('force_oracle', False)
         
         if not prompt:
             return jsonify({"error": "Missing 'prompt' field"}), 400
         
-        # Parse prompt
-        parser = get_prompt_parser()
-        chunks = parser.parse(prompt)
-        params = parser.extract_parameters(chunks)
+        # === INTELLIGENT ROUTER ===
+        # Detect if prompt requires high-fidelity Oracle (costs money)
+        # or can use free local archetypes (instant, $0)
         
-        # Check Redis cache
+        oracle_triggers = [
+            "style", "director", "movie", "film", "mimic", "like",
+            "wes anderson", "tarantino", "nolan", "fincher", "kubrick",
+            "blade runner", "godfather", "citizen kane", "2001",
+            "cinematographer", "deakins", "lubezki", "kaminski"
+        ]
+        
+        use_oracle = force_oracle or any(trigger in prompt.lower() for trigger in oracle_triggers)
+        
+        # Check Redis cache first (works for both paths)
         redis_client = get_redis_client()
-        cache_key = parser.generate_cache_key(chunks)
+        cache_key = f"query:{use_oracle}:{hash(prompt)}"
         
-        if redis_client:
-            cached = redis_client.get(f"query:{cache_key}")
+        if redis_client and not force_oracle:
+            cached = redis_client.get(cache_key)
             if cached:
-                logger.info(f"✓ Cache hit: {cache_key}")
+                logger.info(f"✓ Cache hit: {cache_key[:50]}...")
                 return Response(cached, mimetype='application/json')
         
-        # Compile render manifest
-        compiler = get_manifest_compiler()
-        manifest = compiler.compile(
-            emotion=params.get("mood", "curiosity"),
-            intensity=params.get("intensity", "medium"),
-            visual_style=params.get("visual_style")
-        )
+        # === PATH 1: HIGH-COST, HIGH-FIDELITY (Oracle) ===
+        if use_oracle:
+            logger.info(f"⟳ Routing to ORACLE (high-fidelity path): '{prompt[:50]}...'")
+            
+            oracle = get_cinematography_oracle()
+            sentinel = get_sota_sentinel()
+            
+            # Consult Oracle for director/film-specific analysis
+            oracle_result = oracle.consult(prompt)
+            
+            # Build manifest from Oracle result
+            manifest = {
+                "status": "compiled",
+                "source": "SOTA_ORACLE",
+                "model_used": sentinel.get_model(),
+                "metadata": {
+                    "prompt": prompt,
+                    "description": oracle_result.get("description", ""),
+                    "reference_films": oracle_result.get("reference_films", [])
+                },
+                "render_manifest": {
+                    "camera": oracle_result.get("camera", {}),
+                    "lighting": oracle_result.get("lighting", {}),
+                    "post_process": oracle_result.get("color", {}),
+                    "audio": oracle_result.get("audio", {}),
+                    "grid": oracle_result.get("grid", {})
+                },
+                "ffmpeg_filter": "" # TODO: Generate from Oracle result
+            }
+        
+        # === PATH 2: ZERO-COST, HIGH-SPEED (Local Archetypes) ===
+        else:
+            logger.info(f"⟳ Routing to LOCAL CACHE (zero-cost path): '{prompt[:50]}...'")
+            
+            # Parse prompt for emotional archetype
+            parser = get_prompt_parser()
+            chunks = parser.parse(prompt)
+            params = parser.extract_parameters(chunks)
+            
+            # Compile from local archetypes
+            compiler = get_manifest_compiler()
+            manifest = compiler.compile(
+                emotion=params.get("mood", "curiosity"),
+                intensity=params.get("intensity", "medium"),
+                visual_style=params.get("visual_style")
+            )
+            
+            # Add routing metadata
+            manifest["source"] = "LOCAL_CACHE"
+            manifest["model_used"] = "local_db"
         
         # Cache result (1 hour TTL)
         if redis_client:
-            redis_client.setex(f"query:{cache_key}", 3600, json.dumps(manifest))
+            redis_client.setex(cache_key, 3600, json.dumps(manifest))
         
         return jsonify(manifest)
     
@@ -432,3 +512,93 @@ if __name__ == '__main__':
     logger.info("✓ Starting API server on http://0.0.0.0:9000\n")
     
     app.run(host='0.0.0.0', port=9000, debug=False, threaded=True)
+# Add this endpoint to api_server.py after the existing endpoints
+
+@app.route('/sentinel/status', methods=['GET'])
+def sentinel_status():
+    """
+    Get SOTA Sentinel status and current model information
+    
+    Response:
+    {
+        "sentinel": {...},
+        "oracle": {...}
+    }
+    """
+    sentinel = get_sota_sentinel()
+    oracle = get_cinematography_oracle()
+    
+    return jsonify({
+        "sentinel": sentinel.get_status(),
+        "oracle": oracle.get_status()
+    })
+
+
+@app.route('/sentinel/refresh', methods=['POST'])
+def sentinel_refresh():
+    """
+    Force a delta check to refresh the SOTA model
+    
+    Response:
+    {
+        "previous_model": "gpt-4o",
+        "current_model": "gpt-4o",
+        "changed": false
+    }
+    """
+    sentinel = get_sota_sentinel()
+    oracle = get_cinematography_oracle()
+    
+    previous_model = sentinel.get_model()
+    current_model = sentinel.force_check()
+    
+    # Refresh Oracle if model changed
+    if current_model != previous_model:
+        oracle.refresh_model()
+    
+    return jsonify({
+        "previous_model": previous_model,
+        "current_model": current_model,
+        "changed": current_model != previous_model,
+        "status": sentinel.get_status()
+    })
+
+
+@app.route('/oracle/consult', methods=['POST'])
+def oracle_consult():
+    """
+    Direct Oracle consultation endpoint (bypasses routing logic)
+    
+    Request body:
+    {
+        "prompt": "Wes Anderson style with pastel colors",
+        "temperature": 0.2  // Optional
+    }
+    
+    Response:
+    {
+        "model_used": "gpt-4o",
+        "result": {...}
+    }
+    """
+    try:
+        data = request.json
+        prompt = data.get('prompt', '')
+        temperature = data.get('temperature', 0.2)
+        
+        if not prompt:
+            return jsonify({"error": "Missing 'prompt' field"}), 400
+        
+        oracle = get_cinematography_oracle()
+        sentinel = get_sota_sentinel()
+        
+        result = oracle.consult(prompt, temperature)
+        
+        return jsonify({
+            "model_used": sentinel.get_model(),
+            "result": result
+        })
+    
+    except Exception as e:
+        logger.error(f"Oracle consultation failed: {e}")
+        return jsonify({"error": str(e)}), 500
