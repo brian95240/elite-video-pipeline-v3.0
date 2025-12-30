@@ -22,6 +22,38 @@ class PromptChunk:
 
 
 @dataclass
+class RenderIntent:
+    """
+    NEW v3.2: Render Intent Detection
+    Flags when user requests final output rendering
+    Triggers Cloud Render Extension with cost arbitration
+    """
+    is_render_request: bool = False
+    render_type: str = None  # "preview", "final", "export"
+    output_format: str = None  # "mp4", "png_sequence", "exr_sequence"
+    resolution: str = None  # "1080p", "4k", "8k"
+    quality: str = "high"  # "preview", "high", "production"
+    frame_range: Tuple[int, int] = None  # (start_frame, end_frame)
+    fps: int = 24
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for API transmission"""
+        return {
+            "is_render_request": self.is_render_request,
+            "render_type": self.render_type,
+            "output_format": self.output_format,
+            "resolution": self.resolution,
+            "quality": self.quality,
+            "frame_range": self.frame_range,
+            "fps": self.fps
+        }
+    
+    def is_empty(self) -> bool:
+        """Check if render intent is empty"""
+        return not self.is_render_request
+
+
+@dataclass
 class AestheticTensor:
     """
     Stream A: Abstract stylistic data for Oracle processing
@@ -285,22 +317,25 @@ class PromptParser:
         logger.info(f"Parsed {len(chunks)} chunks from prompt")
         return chunks
     
-    def parse_split_stream(self, prompt: str) -> Tuple[AestheticTensor, KineticTensor]:
+    def parse_split_stream(self, prompt: str) -> Tuple[AestheticTensor, KineticTensor, RenderIntent]:
         """
         NEW: Hybrid-SOTA Split-Stream Protocol
         Parse prompt into separate Aesthetic and Kinetic tensors
+        
+        UPDATED v3.2: Now also detects Render Intent
         
         Args:
             prompt: Natural language prompt
             
         Returns:
-            Tuple of (AestheticTensor, KineticTensor)
+            Tuple of (AestheticTensor, KineticTensor, RenderIntent)
         """
         prompt_lower = prompt.lower()
         
         # Initialize tensors
         aesthetic = AestheticTensor()
         kinetic = KineticTensor()
+        render_intent = RenderIntent()
         
         # === AESTHETIC TENSOR EXTRACTION ===
         
@@ -348,12 +383,16 @@ class PromptParser:
         # Extract timing/velocity hints
         kinetic.velocities = self._extract_velocities(prompt_lower)
         
+        # === RENDER INTENT DETECTION (v3.2) ===
+        render_intent = self._detect_render_intent(prompt_lower)
+        
         # Log split results
         logger.info(f"Split-Stream Parse Complete:")
         logger.info(f"  Aesthetic Tensor: {not aesthetic.is_empty()}")
         logger.info(f"  Kinetic Tensor: {not kinetic.is_empty()}")
+        logger.info(f"  Render Intent: {not render_intent.is_empty()}")
         
-        return aesthetic, kinetic
+        return aesthetic, kinetic, render_intent
     
     # === AESTHETIC EXTRACTION METHODS ===
     
@@ -607,6 +646,90 @@ class PromptParser:
             key_parts.append(f"{chunk.chunk_type}:{chunk.value}")
         
         return "|".join(key_parts) if key_parts else "default"
+
+
+    def _detect_render_intent(self, prompt: str) -> RenderIntent:
+        """
+        NEW v3.2: Detect Render Intent from prompt
+        Triggers Cloud Render Extension with cost arbitration
+        
+        Args:
+            prompt: Lowercased prompt string
+            
+        Returns:
+            RenderIntent object
+        """
+        render_intent = RenderIntent()
+        
+        # Render keywords (lazy-loaded check)
+        render_keywords = [
+            "render", "export", "final cut", "final render", "output",
+            "generate video", "create video", "make video", "produce",
+            "compile", "finish", "finalize", "deliver"
+        ]
+        
+        # Check if any render keyword is present
+        for keyword in render_keywords:
+            if keyword in prompt:
+                render_intent.is_render_request = True
+                break
+        
+        if not render_intent.is_render_request:
+            return render_intent
+        
+        # Determine render type
+        if "preview" in prompt or "draft" in prompt or "test" in prompt:
+            render_intent.render_type = "preview"
+            render_intent.quality = "preview"
+        elif "final" in prompt or "production" in prompt or "deliver" in prompt:
+            render_intent.render_type = "final"
+            render_intent.quality = "production"
+        else:
+            render_intent.render_type = "export"
+            render_intent.quality = "high"
+        
+        # Detect output format
+        if "mp4" in prompt or "video" in prompt or "movie" in prompt:
+            render_intent.output_format = "mp4"
+        elif "png" in prompt or "image sequence" in prompt or "frames" in prompt:
+            render_intent.output_format = "png_sequence"
+        elif "exr" in prompt or "openexr" in prompt:
+            render_intent.output_format = "exr_sequence"
+        else:
+            render_intent.output_format = "mp4"  # Default
+        
+        # Detect resolution
+        if "8k" in prompt or "7680" in prompt:
+            render_intent.resolution = "8k"
+        elif "4k" in prompt or "3840" in prompt or "uhd" in prompt:
+            render_intent.resolution = "4k"
+        elif "1080p" in prompt or "1920" in prompt or "full hd" in prompt or "fhd" in prompt:
+            render_intent.resolution = "1080p"
+        elif "720p" in prompt or "1280" in prompt or "hd" in prompt:
+            render_intent.resolution = "720p"
+        else:
+            render_intent.resolution = "1080p"  # Default
+        
+        # Detect FPS
+        fps_patterns = ["24fps", "30fps", "60fps", "24 fps", "30 fps", "60 fps"]
+        for pattern in fps_patterns:
+            if pattern in prompt:
+                render_intent.fps = int(pattern.split("fps")[0].strip())
+                break
+        
+        # Detect frame range
+        # Pattern: "frames 1-100", "frame 10 to 50"
+        import re
+        frame_range_pattern = r"frames?\s+(\d+)\s*[-to]+\s*(\d+)"
+        match = re.search(frame_range_pattern, prompt)
+        if match:
+            start_frame = int(match.group(1))
+            end_frame = int(match.group(2))
+            render_intent.frame_range = (start_frame, end_frame)
+        
+        logger.info(f"Render Intent Detected: {render_intent.render_type} @ {render_intent.resolution}")
+        
+        return render_intent
 
 
 def create_parser() -> PromptParser:

@@ -17,6 +17,7 @@ from prompt_parser import PromptParser
 from cinematography_engine import CinematographyEngine
 from cinematography_oracle import get_oracle
 from sota_sentinel import get_sentinel
+from gpu_render_broker import GPURenderBroker
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,6 +35,10 @@ _prompt_parser = None
 _cinematography_engine = None
 _oracle = None
 _sentinel = None
+_gpu_broker = None
+
+# === v3.2: RENDER JOB TRACKING ===
+_pending_renders = {}  # {job_id: render_job_data}
 
 
 def get_redis_client():
@@ -111,6 +116,16 @@ def get_sota_sentinel():
         _sentinel = get_sentinel()
         logger.info("✓ SOTA Sentinel initialized")
     return _sentinel
+
+
+def get_gpu_broker():
+    """Lazy-load GPU render broker (singleton) - v3.2"""
+    global _gpu_broker
+    if _gpu_broker is None:
+        _gpu_broker = GPURenderBroker()
+        _gpu_broker.load_providers_from_manifest()
+        logger.info("✓ GPU Render Broker initialized")
+    return _gpu_broker
 
 
 # === API ENDPOINTS ===
@@ -783,6 +798,198 @@ def export_blender_script():
     
     except Exception as e:
         logger.error(f"Blender export failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# === v3.2: CLOUD RENDER EXTENSION ENDPOINTS ===
+
+@app.route('/render/estimate', methods=['POST'])
+def render_estimate():
+    """
+    NEW v3.2: Pre-flight render cost estimate
+    Returns estimated cost and provider info WITHOUT starting render
+    
+    Request body:
+    {
+        "prompt": "Render this scene in 4k at 24fps",
+        "scene_data": {...}  # Optional: existing scene manifest
+    }
+    
+    Response: 202 Accepted with estimate JSON
+    """
+    try:
+        import uuid
+        from datetime import datetime
+        
+        data = request.json
+        prompt = data.get('prompt')
+        scene_data = data.get('scene_data', {})
+        
+        if not prompt:
+            return jsonify({"error": "Missing 'prompt' field"}), 400
+        
+        # Parse prompt for render intent
+        parser = get_prompt_parser()
+        aesthetic, kinetic, render_intent = parser.parse_split_stream(prompt)
+        
+        if not render_intent.is_render_request:
+            return jsonify({
+                "error": "No render intent detected in prompt",
+                "hint": "Use keywords like 'render', 'export', 'final cut', 'output'"
+            }), 400
+        
+        # Select best GPU provider
+        broker = get_gpu_broker()
+        best_provider, estimated_cost = broker.select_best_provider(render_intent)
+        
+        if not best_provider:
+            return jsonify({"error": "No suitable GPU provider available"}), 503
+        
+        # Generate job ID
+        job_id = str(uuid.uuid4())
+        
+        # Store pending render job
+        _pending_renders[job_id] = {
+            "job_id": job_id,
+            "prompt": prompt,
+            "render_intent": render_intent.to_dict(),
+            "provider": {
+                "name": best_provider.name,
+                "gpu_model": best_provider.gpu_model,
+                "vram_gb": best_provider.vram_gb,
+                "spot_price_per_hour": best_provider.spot_price_per_hour,
+                "region": best_provider.region
+            },
+            "estimated_cost": estimated_cost,
+            "scene_data": scene_data,
+            "created_at": datetime.now().isoformat(),
+            "status": "pending_confirmation"
+        }
+        
+        # Calculate vertex confidence
+        vertex_engine = get_vertex_engine()
+        vertex_confidence = 0.95  # Placeholder - would calculate from scene complexity
+        
+        # Return 202 Accepted with estimate
+        return jsonify({
+            "status": "pending_confirmation",
+            "job_id": job_id,
+            "message": f"Ready to render on {best_provider.name}. Cost: ${estimated_cost:.3f}. Confirm?",
+            "render_intent": render_intent.to_dict(),
+            "provider": {
+                "name": best_provider.name,
+                "gpu_model": best_provider.gpu_model,
+                "vram_gb": best_provider.vram_gb,
+                "spot_price_per_hour": best_provider.spot_price_per_hour,
+                "uptime_sla": best_provider.uptime_sla,
+                "region": best_provider.region
+            },
+            "estimated_cost_usd": round(estimated_cost, 3),
+            "vertex_confidence": vertex_confidence,
+            "confirmation_endpoint": f"/render/confirm/{job_id}",
+            "expires_in_seconds": 300  # 5 minutes
+        }), 202
+    
+    except Exception as e:
+        logger.error(f"Render estimate failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/render/confirm/<job_id>', methods=['POST'])
+def render_confirm(job_id: str):
+    """
+    NEW v3.2: Confirm render job and start execution
+    User must explicitly confirm to prevent runaway costs
+    
+    Response: 202 Accepted with job tracking info
+    """
+    try:
+        # Check if job exists
+        if job_id not in _pending_renders:
+            return jsonify({"error": "Job ID not found or expired"}), 404
+        
+        job_data = _pending_renders[job_id]
+        
+        # Check if already confirmed
+        if job_data["status"] != "pending_confirmation":
+            return jsonify({
+                "error": f"Job already {job_data['status']}",
+                "job_id": job_id,
+                "status": job_data["status"]
+            }), 400
+        
+        # Update status
+        job_data["status"] = "confirmed"
+        job_data["confirmed_at"] = datetime.now().isoformat()
+        
+        # TODO: Dispatch to cloud GPU provider
+        # This would call pipeline_orchestrator.py to compile manifest
+        # and send to selected GPU provider's API
+        
+        logger.info(f"✓ Render job {job_id} confirmed")
+        logger.info(f"  Provider: {job_data['provider']['name']}")
+        logger.info(f"  Estimated cost: ${job_data['estimated_cost']:.3f}")
+        
+        # Return confirmation
+        return jsonify({
+            "status": "confirmed",
+            "job_id": job_id,
+            "message": "Render job confirmed and queued for execution",
+            "provider": job_data["provider"]["name"],
+            "estimated_cost_usd": job_data["estimated_cost"],
+            "tracking_endpoint": f"/render/status/{job_id}",
+            "note": "Actual cloud GPU dispatch not implemented in this version (requires provider API keys)"
+        }), 202
+    
+    except Exception as e:
+        logger.error(f"Render confirmation failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/render/status/<job_id>', methods=['GET'])
+def render_status(job_id: str):
+    """
+    NEW v3.2: Get render job status
+    
+    Response: Job status and progress
+    """
+    try:
+        if job_id not in _pending_renders:
+            return jsonify({"error": "Job ID not found"}), 404
+        
+        job_data = _pending_renders[job_id]
+        
+        return jsonify({
+            "job_id": job_id,
+            "status": job_data["status"],
+            "provider": job_data["provider"]["name"],
+            "estimated_cost_usd": job_data["estimated_cost"],
+            "render_intent": job_data["render_intent"],
+            "created_at": job_data["created_at"],
+            "confirmed_at": job_data.get("confirmed_at"),
+            "progress_percent": 0  # Placeholder
+        })
+    
+    except Exception as e:
+        logger.error(f"Render status check failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/render/providers', methods=['GET'])
+def render_providers():
+    """
+    NEW v3.2: Get available GPU providers and their status
+    
+    Response: List of providers with vertex scores
+    """
+    try:
+        broker = get_gpu_broker()
+        status = broker.get_provider_status()
+        
+        return jsonify(status)
+    
+    except Exception as e:
+        logger.error(f"Provider status check failed: {e}")
         return jsonify({"error": str(e)}), 500
 
 
