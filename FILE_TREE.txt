@@ -1,18 +1,44 @@
 .
-├── FILE_TREE.txt
-├── LICENSE.md
-├── README.md
-├── config
-├── docs
-├── redis_templates
-├── requirements.txt
-├── scripts
-├── src
-│   ├── cinematography_engine.py
-│   ├── emotional_index_v3.py
-│   ├── pipeline_orchestrator.py
-│   └── redis_orchestrator.py
-└── tests
-    └── test_pipeline_closed_loop.py
+|-- COMMIT_MESSAGE.txt
+|-- COMMIT_MESSAGE_SOTA.txt
+|-- DEPLOYMENT_SUMMARY.md
+|-- FILE_TREE.txt
+|-- HETZNER_DEPLOYMENT.md
+|-- INSTALLATION.md
+|-- INTEGRATION_ANALYSIS.md
+|-- LICENSE.md
+|-- README.md
+|-- SOTA_SENTINEL_GUIDE.md
+|-- VERTEX_INTEGRATION_GUIDE.md
+|-- docs
+|   |-- API_REFERENCE.md
+|   |-- ARCHITECTURE.md
+|   |-- MARKETING_BRIEF.md
+|   `-- assets
+|       `-- elite-pipeline-hero.png
+|-- examples
+|   `-- sota_manifest.json
+|-- requirements.txt
+|-- scripts
+|   `-- deploy_hetzner.sh
+|-- src
+|   |-- api_server.py
+|   |-- cinematography_engine.py
+|   |-- cinematography_oracle.py
+|   |-- emotional_index_v3.py
+|   |-- emotional_index_v3_vertex.py
+|   |-- neon_adapter.py
+|   |-- pipeline_orchestrator.py
+|   |-- prompt_parser.py
+|   |-- redis_orchestrator.py
+|   |-- render_manifest.py
+|   |-- sota_sentinel.py
+|   |-- vertex_cinematography.py
+|   `-- vertex_upgrade_controller.py
+|-- test_hybrid_local_synthesis.py
+|-- test_hybrid_style_simulation.py
+`-- tests
+    |-- test_pipeline_closed_loop.py
+    `-- test_vertex_integration.py
 
-6 directories, 9 files
+6 directories, 35 files

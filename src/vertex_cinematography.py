@@ -314,6 +314,249 @@ class VertexCinematography:
             filters.append("chromakey=0.1")
         
         return ",".join(filters) if filters else "null"
+    
+    def merge_aesthetic_kinetic(self, aesthetic_result: Dict, kinetic_result: Dict,
+                                    aesthetic_tensor: 'AestheticTensor',
+                                    kinetic_tensor: 'KineticTensor') -> Dict:
+        """
+        NEW: Vertex Convergence - Merge Aesthetic and Kinetic streams
+        Maps Oracle's stylistic parameters onto Local Engine's geometric mesh
+        
+        Args:
+            aesthetic_result: Oracle's cinematography specifications (Stream A)
+            kinetic_result: Local engine's physics/geometry data (Stream B)
+            aesthetic_tensor: Original aesthetic tensor
+            kinetic_tensor: Original kinetic tensor
+            
+        Returns:
+            Merged render manifest with unified cinematography + physics
+        """
+        logger.info("⟳ Vertex Convergence: Merging aesthetic + kinetic streams")
+        
+        # === STEP 1: Extract Aesthetic Parameters ===
+        # Get lighting ratios, color temperature, ISO from Oracle
+        aesthetic_lighting = aesthetic_result.get("lighting", {})
+        aesthetic_camera = aesthetic_result.get("camera", {})
+        aesthetic_color = aesthetic_result.get("color", {})
+        aesthetic_audio = aesthetic_result.get("audio", {})
+        aesthetic_grid = aesthetic_result.get("grid", {})
+        
+        # === STEP 2: Extract Kinetic Parameters ===
+        # Get geometric mesh, physics simulation from Local Engine
+        kinetic_scene = kinetic_result.get("scene_manifest", {})
+        kinetic_mesh = kinetic_result.get("geometric_mesh", {})
+        kinetic_physics = kinetic_result.get("physics_simulation", {})
+        kinetic_timing = kinetic_result.get("timing_data", {})
+        
+        # === STEP 3: Map Aesthetic onto Kinetic ===
+        # Apply Oracle's lighting ratios to Local Engine's actor positions
+        merged_lighting = self._map_lighting_to_geometry(
+            aesthetic_lighting,
+            kinetic_mesh,
+            kinetic_scene
+        )
+        
+        # Apply Oracle's camera specs to Local Engine's blocking
+        merged_camera = self._map_camera_to_blocking(
+            aesthetic_camera,
+            kinetic_mesh,
+            kinetic_scene
+        )
+        
+        # Apply Oracle's color grading to Local Engine's action timing
+        merged_color = self._map_color_to_timing(
+            aesthetic_color,
+            kinetic_timing,
+            aesthetic_tensor
+        )
+        
+        # Apply Oracle's audio profile to Local Engine's physics
+        merged_audio = self._map_audio_to_physics(
+            aesthetic_audio,
+            kinetic_physics,
+            kinetic_scene
+        )
+        
+        # Apply Oracle's composition grid to Local Engine's spatial coordinates
+        merged_grid = self._map_grid_to_spatial(
+            aesthetic_grid,
+            kinetic_mesh,
+            kinetic_scene
+        )
+        
+        # === STEP 4: Compile Unified Manifest ===
+        merged_manifest = {
+            "camera": merged_camera,
+            "lighting": merged_lighting,
+            "post_process": merged_color,
+            "audio": merged_audio,
+            "grid": merged_grid,
+            "physics": kinetic_physics,
+            "geometry": kinetic_mesh,
+            "scene": kinetic_scene,
+            "timing": kinetic_timing
+        }
+        
+        logger.info("✓ Vertex Convergence complete")
+        return merged_manifest
+    
+    def _map_lighting_to_geometry(self, lighting: Dict, mesh: Dict, scene: Dict) -> Dict:
+        """
+        Map aesthetic lighting parameters onto geometric mesh
+        Aligns lighting ratios with actor positions
+        """
+        merged = lighting.copy()
+        
+        # Calculate lighting zones based on actor positions
+        vertices = mesh.get("vertices", [])
+        
+        if vertices:
+            # Distribute lighting based on actor count
+            num_actors = len(vertices)
+            
+            # Adjust key light intensity based on scene density
+            if num_actors > 3:
+                merged["key_light_intensity"] = 0.8  # Softer for crowded scenes
+            else:
+                merged["key_light_intensity"] = 1.0  # Full intensity for sparse scenes
+            
+            # Add positional lighting data
+            merged["light_positions"] = [
+                {
+                    "type": "key",
+                    "position": [vertices[0]["x"] + 2, vertices[0]["y"] + 3, vertices[0]["z"] + 1]
+                } if vertices else {"type": "key", "position": [2, 3, 1]}
+            ]
+        
+        return merged
+    
+    def _map_camera_to_blocking(self, camera: Dict, mesh: Dict, scene: Dict) -> Dict:
+        """
+        Map aesthetic camera parameters onto blocking zones
+        Adjusts focal length and aperture based on actor positions
+        """
+        merged = camera.copy()
+        
+        # Get actor positions
+        vertices = mesh.get("vertices", [])
+        
+        if vertices:
+            # Calculate scene depth (distance between actors)
+            if len(vertices) > 1:
+                depth = abs(vertices[-1]["x"] - vertices[0]["x"])
+                
+                # Adjust focal length based on scene depth
+                if depth > 5.0:
+                    merged["focal_length"] = 85  # Telephoto for compressed space
+                elif depth < 2.0:
+                    merged["focal_length"] = 24  # Wide for intimate scenes
+                else:
+                    merged["focal_length"] = merged.get("focal_length", 50)  # Keep Oracle's choice
+        
+        # Add camera position based on blocking
+        blocking_zones = mesh.get("faces", [])
+        if blocking_zones:
+            # Position camera to capture all blocking zones
+            merged["camera_position"] = [0, 1.6, 5]  # Standard eye-level, 5 units back
+        
+        return merged
+    
+    def _map_color_to_timing(self, color: Dict, timing: Dict, aesthetic_tensor: 'AestheticTensor') -> Dict:
+        """
+        Map aesthetic color grading onto action timing
+        Aligns lighting temperature with physical action speed
+        """
+        merged = color.copy()
+        
+        # Get speed multiplier from timing
+        speed = timing.get("speed_multiplier", 1.0)
+        
+        # Adjust color temperature based on action speed
+        # Fast action = warmer (adrenaline)
+        # Slow action = cooler (contemplative)
+        if speed > 1.5:  # Fast action
+            merged["temperature_shift"] = "+200K"  # Warmer
+            merged["saturation"] = merged.get("saturation", 1.0) * 1.1  # More saturated
+        elif speed < 0.7:  # Slow action
+            merged["temperature_shift"] = "-200K"  # Cooler
+            merged["saturation"] = merged.get("saturation", 1.0) * 0.9  # Less saturated
+        
+        # Apply emotional index intensity to color grading
+        if aesthetic_tensor and aesthetic_tensor.intensity:
+            if aesthetic_tensor.intensity == "heavy":
+                merged["contrast"] = merged.get("contrast", 1.0) * 1.2  # More contrast
+            elif aesthetic_tensor.intensity == "light":
+                merged["contrast"] = merged.get("contrast", 1.0) * 0.9  # Less contrast
+        
+        return merged
+    
+    def _map_audio_to_physics(self, audio: Dict, physics: Dict, scene: Dict) -> Dict:
+        """
+        Map aesthetic audio profile onto physics simulation
+        Aligns reverb with spatial acoustics
+        """
+        merged = audio.copy()
+        
+        # Get physics forces
+        forces = physics.get("forces", [])
+        
+        # Adjust reverb based on action intensity
+        if forces:
+            # High-energy actions = shorter reverb (tight space feel)
+            # Low-energy actions = longer reverb (expansive space feel)
+            total_force = sum(f.get("magnitude", 0) for f in forces)
+            
+            if total_force > 10.0:
+                merged["reverb"] = "Small Room"  # Tight, energetic
+            elif total_force < 5.0:
+                merged["reverb"] = "Large Hall"  # Expansive, contemplative
+            else:
+                merged["reverb"] = merged.get("reverb", "Medium Room")  # Keep Oracle's choice
+        
+        # Add spatial audio based on object count
+        objects = scene.get("objects", [])
+        if len(objects) > 3:
+            merged["spatial_audio"] = "5.1 Surround"  # Complex scene
+        else:
+            merged["spatial_audio"] = "Stereo"  # Simple scene
+        
+        return merged
+    
+    def _map_grid_to_spatial(self, grid: Dict, mesh: Dict, scene: Dict) -> Dict:
+        """
+        Map aesthetic composition grid onto spatial coordinates
+        Aligns composition rules with actor blocking
+        """
+        merged = grid.copy()
+        
+        # Get actor positions
+        vertices = mesh.get("vertices", [])
+        
+        if vertices:
+            # Calculate center of mass for actors
+            if len(vertices) > 0:
+                center_x = sum(v["x"] for v in vertices) / len(vertices)
+                center_y = sum(v["y"] for v in vertices) / len(vertices)
+                
+                # Determine composition zone
+                if center_x < -1.0:
+                    merged["primary_zone"] = "left_third"
+                elif center_x > 1.0:
+                    merged["primary_zone"] = "right_third"
+                else:
+                    merged["primary_zone"] = "center_third"
+                
+                # Add spatial data
+                merged["center_of_mass"] = {"x": center_x, "y": center_y}
+        
+        # Apply composition rule based on action count
+        actions = scene.get("actions", [])
+        if len(actions) > 2:
+            merged["composition"] = "Dynamic Asymmetry"  # Complex action
+        else:
+            merged["composition"] = merged.get("composition", "Rule of Thirds")  # Keep Oracle's choice
+        
+        return merged
 
 
 def create_vertex_engine() -> VertexCinematography:
