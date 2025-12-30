@@ -1,0 +1,55 @@
+.
+├── COMMIT_MESSAGE.txt
+├── COMMIT_MESSAGE_SOTA.txt
+├── COMMIT_MESSAGE_SPLIT_STREAM.txt
+├── COMMIT_MESSAGE_V3.2.txt
+├── DEPLOYMENT_SUMMARY.md
+├── FILE_TREE.txt
+├── FILE_TREE_COMPREHENSIVE.md
+├── FILE_TREE_V3.2.txt
+├── HETZNER_DEPLOYMENT.md
+├── INSTALLATION.md
+├── INTEGRATION_ANALYSIS.md
+├── LICENSE.md
+├── README.md
+├── SOTA_SENTINEL_GUIDE.md
+├── SPLIT_STREAM_PROTOCOL.md
+├── V3.2_CLOUD_RENDER_EXTENSION.md
+├── VERTEX_INTEGRATION_GUIDE.md
+├── docs
+│   ├── API_REFERENCE.md
+│   ├── ARCHITECTURE.md
+│   ├── MARKETING_BRIEF.md
+│   └── assets
+│       └── elite-pipeline-hero.png
+├── examples
+│   ├── sota_manifest.json
+│   └── sota_manifest_v3.2.json
+├── requirements.txt
+├── scripts
+│   └── deploy_hetzner.sh
+├── src
+│   ├── api_server.py
+│   ├── cinematography_engine.py
+│   ├── cinematography_oracle.py
+│   ├── cloud_render_executor.py
+│   ├── emotional_index_v3.py
+│   ├── emotional_index_v3_vertex.py
+│   ├── gpu_render_broker.py
+│   ├── neon_adapter.py
+│   ├── pipeline_orchestrator.py
+│   ├── prompt_parser.py
+│   ├── redis_orchestrator.py
+│   ├── render_manifest.py
+│   ├── sota_sentinel.py
+│   ├── vertex_cinematography.py
+│   └── vertex_upgrade_controller.py
+├── test_hybrid_local_synthesis.py
+├── test_hybrid_style_simulation.py
+├── test_split_stream_protocol.py
+├── test_v3.2_cloud_render.py
+└── tests
+    ├── test_pipeline_closed_loop.py
+    └── test_vertex_integration.py
+
+6 directories, 46 files

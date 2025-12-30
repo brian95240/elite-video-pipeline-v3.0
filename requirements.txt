@@ -22,3 +22,4 @@ mypy==1.7.1
 # Utilities
 click==8.1.7
 pydantic==2.5.2
+gunicorn==21.2.0

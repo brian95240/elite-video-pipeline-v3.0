@@ -1,0 +1,70 @@
+# Elite Video Pipeline v3.3 - Docker Compose
+# For local development and testing
+
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: elite-video-pipeline-api
+    ports:
+      - "9000:9000"
+    environment:
+      # Database (use your Neon connection string)
+      - DATABASE_URL=${DATABASE_URL}
+      
+      # Redis (optional, for caching)
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      
+      # GPU Render Broker
+      - VERTEX_QUALITY_THRESHOLD=${VERTEX_QUALITY_THRESHOLD:-0.7}
+      - VERTEX_COST_RATIO_MAX=${VERTEX_COST_RATIO_MAX:-2.0}
+      
+      # SOTA Manifest
+      - SOTA_MANIFEST_URL=${SOTA_MANIFEST_URL:-https://raw.githubusercontent.com/brian95240/elite-video-pipeline-v3.0/main/examples/sota_manifest_v3.2.json}
+      
+      # Render Output
+      - RENDER_OUTPUT_DIR=${RENDER_OUTPUT_DIR:-/tmp/renders}
+      
+      # LLM API Keys (optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      
+      # Gunicorn settings
+      - WORKERS=${WORKERS:-4}
+      - TIMEOUT=${TIMEOUT:-120}
+    volumes:
+      - ./src:/app/src:ro
+      - render-output:/tmp/renders
+    depends_on:
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: elite-video-pipeline-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  redis-data:
+  render-output:

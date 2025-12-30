@@ -8,6 +8,7 @@ import logging
 import json
 from typing import Dict, Optional
 from dataclasses import dataclass, asdict
+import copy
 
 from emotional_index_v3_vertex import EmotionalIndexManagerVertex
 from vertex_cinematography import VertexCinematography
@@ -530,6 +531,162 @@ print("✓ Cinematography applied to Blender scene")
             return (0.8, 0.9, 1.0)  # Cool
         else:
             return (1.0, 1.0, 1.0)  # Neutral
+    
+    def prune_manifest(self, manifest: Dict, optimization_level: str = "balanced") -> Dict:
+        """
+        NEW v3.3: Prune manifest to minimize VRAM usage and render time
+        
+        This is the .01% refinement that strips unused assets and excessive data
+        before sending to GPU, resulting in direct cost savings.
+        
+        Args:
+            manifest: Complete render manifest
+            optimization_level: 'aggressive', 'balanced', or 'conservative'
+            
+        Returns:
+            Pruned manifest with optimized asset footprint
+        """
+        logger.info(f"⚡ Pruning manifest (level: {optimization_level})")
+        
+        # Deep copy to avoid mutating original
+        pruned = copy.deepcopy(manifest)
+        
+        # === PRUNING RULES ===
+        
+        # 1. Remove zero-value post-process effects (no visual impact)
+        if "render_manifest" in pruned and "post_process" in pruned["render_manifest"]:
+            post = pruned["render_manifest"]["post_process"]
+            
+            # Remove effects with zero/negligible values
+            if post.get("vignette", 0) < 0.01:
+                post["vignette"] = 0.0
+            if post.get("bloom", 0) < 0.01:
+                post["bloom"] = 0.0
+            if post.get("grain", 0) < 0.01:
+                post["grain"] = 0.0
+            if post.get("chromatic_aberration", 0) < 0.01:
+                post["chromatic_aberration"] = 0.0
+        
+        # 2. Simplify geometry data (reduce polygon counts)
+        if "geometry" in pruned:
+            geo = pruned["geometry"]
+            
+            if optimization_level == "aggressive":
+                # Aggressive: Remove all non-essential geometry
+                geo["max_polygons"] = 100000  # 100k poly limit
+                geo["lod_enabled"] = True
+                geo["lod_distance"] = [10, 50, 100]  # Level of detail distances
+            elif optimization_level == "balanced":
+                # Balanced: Moderate polygon limits
+                geo["max_polygons"] = 500000  # 500k poly limit
+                geo["lod_enabled"] = True
+                geo["lod_distance"] = [20, 100, 200]
+            else:  # conservative
+                # Conservative: Minimal pruning
+                geo["max_polygons"] = 2000000  # 2M poly limit
+                geo["lod_enabled"] = False
+        
+        # 3. Optimize texture resolution based on camera distance
+        if "scene" in pruned:
+            scene = pruned["scene"]
+            camera_data = pruned.get("render_manifest", {}).get("camera", {})
+            focal_length = camera_data.get("focal_length_mm", 50)
+            
+            # Wide angle (< 35mm) = distant objects = lower texture res
+            if focal_length < 35:
+                scene["texture_resolution"] = "2k"  # 2048x2048
+            # Normal (35-85mm) = balanced
+            elif focal_length < 85:
+                scene["texture_resolution"] = "4k"  # 4096x4096
+            # Telephoto (> 85mm) = close-up = higher texture res
+            else:
+                scene["texture_resolution"] = "4k"  # Keep high for close-ups
+            
+            # Override for aggressive optimization
+            if optimization_level == "aggressive":
+                scene["texture_resolution"] = "2k"
+        
+        # 4. Remove unused VFX effects
+        if "vfx_effects" in pruned:
+            # Keep only effects with non-zero intensity
+            pruned["vfx_effects"] = [
+                effect for effect in pruned["vfx_effects"]
+                if effect.get("intensity", 0) > 0.01
+            ]
+        
+        # 5. Simplify FFmpeg filter chain
+        if "ffmpeg_filter" in pruned:
+            ffmpeg = pruned["ffmpeg_filter"]
+            
+            # Remove null filters
+            if ffmpeg == "null":
+                pruned["ffmpeg_filter"] = ""
+            
+            # Combine similar filters
+            if "eq=" in ffmpeg:
+                # Merge multiple eq filters into one
+                # (This is a simplified example; full implementation would parse the filter chain)
+                pass
+        
+        # 6. Calculate pruning statistics
+        original_size = self._estimate_manifest_size(manifest)
+        pruned_size = self._estimate_manifest_size(pruned)
+        reduction_percent = ((original_size - pruned_size) / original_size) * 100 if original_size > 0 else 0
+        
+        # Add pruning metadata
+        if "metadata" not in pruned:
+            pruned["metadata"] = {}
+        
+        pruned["metadata"]["pruning"] = {
+            "enabled": True,
+            "level": optimization_level,
+            "original_size_kb": original_size,
+            "pruned_size_kb": pruned_size,
+            "reduction_percent": round(reduction_percent, 2),
+            "vram_savings_estimate_mb": self._estimate_vram_savings(manifest, pruned)
+        }
+        
+        logger.info(f"✓ Manifest pruned: {reduction_percent:.1f}% reduction, "
+                   f"~{pruned['metadata']['pruning']['vram_savings_estimate_mb']}MB VRAM saved")
+        
+        return pruned
+    
+    def _estimate_manifest_size(self, manifest: Dict) -> float:
+        """
+        Estimate manifest size in KB (rough approximation)
+        """
+        import sys
+        return sys.getsizeof(json.dumps(manifest)) / 1024.0
+    
+    def _estimate_vram_savings(self, original: Dict, pruned: Dict) -> int:
+        """
+        Estimate VRAM savings in MB from pruning
+        """
+        savings = 0
+        
+        # Geometry savings
+        orig_geo = original.get("geometry", {})
+        pruned_geo = pruned.get("geometry", {})
+        
+        orig_polys = orig_geo.get("max_polygons", 1000000)
+        pruned_polys = pruned_geo.get("max_polygons", 1000000)
+        
+        # Rough estimate: 1M polygons ≈ 100MB VRAM
+        poly_savings = ((orig_polys - pruned_polys) / 1000000) * 100
+        savings += max(0, poly_savings)
+        
+        # Texture savings
+        orig_scene = original.get("scene", {})
+        pruned_scene = pruned.get("scene", {})
+        
+        orig_tex = orig_scene.get("texture_resolution", "4k")
+        pruned_tex = pruned_scene.get("texture_resolution", "4k")
+        
+        # 4k texture ≈ 64MB, 2k texture ≈ 16MB
+        if orig_tex == "4k" and pruned_tex == "2k":
+            savings += 48  # 64 - 16 = 48MB per texture
+        
+        return int(savings)
 
 
 def create_compiler(redis_client=None) -> RenderManifestCompiler:

@@ -1,0 +1,19 @@
+# Elite Video Pipeline v3.3 - Python Dependencies
+# Includes all v3.2 dependencies plus gunicorn for production deployment
+
+# Web Framework
+Flask==3.0.0
+gunicorn==21.2.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# Caching
+redis==5.0.1
+
+# LLM Integration
+litellm==1.17.9
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0

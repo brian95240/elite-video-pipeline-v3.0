@@ -1,0 +1,58 @@
+# Elite Video Pipeline v3.3 - Docker Ignore
+# Minimize image size by excluding unnecessary files
+
+# Git
+.git/
+.gitignore
+.github/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Tests
+tests/
+test_*.py
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Deployment scripts
+deploy.sh
+scripts/
+
+# Examples (keep only sota_manifest_v3.2.json)
+examples/sota_manifest.json
+
+# Temporary files
+*.log
+*.tmp
+/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
